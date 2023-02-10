@@ -1,4 +1,5 @@
 use nannou::{color::rgb::Rgb, prelude::*};
+use std::collections::VecDeque;
 
 fn main() {
     nannou::app(model).update(update).run();
@@ -12,15 +13,15 @@ enum Target {
 struct Body {
     position: Vec2,
     color: Rgb,
-    next_color: Target,
+    next_colors: VecDeque<Target>,
 }
 
 impl Default for Body {
     fn default() -> Self {
         Self {
-            position: Vec2::ZERO,
-            color: Rgb::new(0.0, 0.0, 0.0),
-            next_color: Target::Now(Rgb::new(0.0, 0.0, 0.0)),
+            position: Default::default(),
+            color: Default::default(),
+            next_colors: Default::default(),
         }
     }
 }
@@ -41,21 +42,29 @@ impl Body {
     }
 
     fn change_color(&mut self, color: Rgb) {
-        self.next_color = Target::Now(color)
+        self.next_colors.push_front(Target::Now(color))
     }
 
     fn change_color_delayed(&mut self, color: Rgb, target_frame: u64) {
-        self.next_color = Target::Future(color, target_frame);
+        println!(
+            "Push front ({}, {}, {})",
+            color.red, color.green, color.blue
+        );
+
+        self.next_colors
+            .push_front(Target::Future(color, target_frame));
     }
 
     fn update(&mut self, current_frame: u64) {
-        match self.next_color {
-            Target::Now(color) => {
-                self.color = color;
-            }
-            Target::Future(color, target_frame) => {
-                if current_frame == target_frame {
-                    self.color = color;
+        if let Some(next_color) = self.next_colors.pop_back() {
+            match next_color {
+                Target::Now(color) => self.color = color,
+                Target::Future(color, target_frame) => {
+                    if current_frame >= target_frame {
+                        self.color = color;
+                    } else {
+                        self.next_colors.push_back(next_color);
+                    }
                 }
             }
         }
