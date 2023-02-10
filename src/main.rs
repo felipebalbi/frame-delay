@@ -78,6 +78,7 @@ struct Model {
 
 fn model(app: &App) -> Model {
     app.new_window().event(event).view(view).build().unwrap();
+    app.set_loop_mode(LoopMode::rate_fps(60.0));
 
     Model {
         left_body: Body::new(-32.0, 0.0),
