@@ -14,6 +14,7 @@ struct Body {
     position: Vec2,
     color: Rgb,
     next_colors: VecDeque<Target>,
+    draw_text: bool,
 }
 
 impl Default for Body {
@@ -22,6 +23,7 @@ impl Default for Body {
             position: Default::default(),
             color: Default::default(),
             next_colors: Default::default(),
+            draw_text: false,
         }
     }
 }
@@ -39,18 +41,22 @@ impl Body {
             .radius(30.0)
             .color(self.color)
             .xy(self.position);
+
+        if self.draw_text {
+            draw.text("Pressed")
+                .color(BLACK)
+                .font_size(24)
+                .xy(self.position + Vec2::new(0.0, 70.0));
+        }
     }
 
-    fn change_color(&mut self, color: Rgb) {
+    fn change_color(&mut self, color: Rgb, draw_text: bool) {
+        self.draw_text = draw_text;
         self.next_colors.push_front(Target::Now(color))
     }
 
-    fn change_color_delayed(&mut self, color: Rgb, target_frame: u64) {
-        println!(
-            "Push front ({}, {}, {})",
-            color.red, color.green, color.blue
-        );
-
+    fn change_color_delayed(&mut self, color: Rgb, target_frame: u64, draw_text: bool) {
+        self.draw_text = draw_text;
         self.next_colors
             .push_front(Target::Future(color, target_frame));
     }
@@ -112,29 +118,29 @@ fn view(app: &App, model: &Model, frame: Frame) {
 
 fn event(app: &App, model: &mut Model, event: WindowEvent) {
     let fps = app.fps();
-    let slack = (fps / 10.0) as u64 - 1;
+    let slack = (fps / 10.0) as u64;
     let target_frame = app.elapsed_frames() + slack;
 
     match event {
         KeyPressed(key) => match key {
             Key::F => {
-                model.left_body.change_color(Rgb::new(0.3, 0.3, 0.3));
+                model.left_body.change_color(Rgb::new(1.0, 0.1, 0.1), true);
             }
             Key::J => {
                 model
                     .right_body
-                    .change_color_delayed(Rgb::new(0.3, 0.3, 0.3), target_frame);
+                    .change_color_delayed(Rgb::new(1.0, 0.1, 0.1), target_frame, true);
             }
             _ => {}
         },
         KeyReleased(key) => match key {
             Key::F => {
-                model.left_body.change_color(Rgb::new(0.0, 0.0, 0.0));
+                model.left_body.change_color(Rgb::new(0.0, 0.0, 0.0), false);
             }
             Key::J => {
                 model
                     .right_body
-                    .change_color_delayed(Rgb::new(0.0, 0.0, 0.0), target_frame);
+                    .change_color_delayed(Rgb::new(0.0, 0.0, 0.0), target_frame, false);
             }
             _ => {}
         },
